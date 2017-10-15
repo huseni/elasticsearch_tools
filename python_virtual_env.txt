@@ -1,0 +1,32 @@
+How to create virtual env
+============================
+root@ip-10-3-3-53:/home/ubuntu# pip install virtualenv
+Collecting virtualenv
+  Downloading virtualenv-15.1.0-py2.py3-none-any.whl (1.8MB)
+    100% |████████████████████████████████| 1.8MB 665kB/s
+Installing collected packages: virtualenv
+Successfully installed virtualenv-15.1.0
+root@ip-10-3-3-53:/home/ubuntu# pwd
+/home/ubuntu
+root@ip-10-3-3-53:/home/ubuntu# mkdir python_env
+root@ip-10-3-3-53:/home/ubuntu# cd python_env/
+root@ip-10-3-3-53:/home/ubuntu/python_env# mkdir learning-flask
+root@ip-10-3-3-53:/home/ubuntu/python_env# cd learning-flask/
+root@ip-10-3-3-53:/home/ubuntu/python_env/learning-flask# virtualenv venv
+New python executable in /home/ubuntu/python_env/learning-flask/venv/bin/python
+Installing setuptools, pip, wheel...done.
+root@ip-10-3-3-53:/home/ubuntu/python_env/learning-flask# source venv/bin/activate
+(venv) root@ip-10-3-3-53:/home/ubuntu/python_env/learning-flask# pip install flask
+Collecting flask
+
+(venv) root@ip-10-3-3-53:/home/ubuntu/python_env/learning-flask# pip install SQLAlchemy
+Collecting SQLAlchemy
+  Downloading SQLAlchemy-1.1.5.tar.gz (5.1MB)
+    100% |████████████████████████████████| 5.1MB 267kB/s
+Building wheels for collected packages: SQLAlchemy
+  Running setup.py bdist_wheel for SQLAlchemy ... done
+  Stored in directory: /root/.cache/pip/wheels/8d/0a/3b/2109101a4052e58ad64f83661383a6b483a1c383eb09aad6d6
+Successfully built SQLAlchemy
+Installing collected packages: SQLAlchemy
+Successfully installed SQLAlchemy-1.1.5
+(venv) root@ip-10-3-3-53:/home/ubuntu/python_env/learning-flask#
