@@ -1,0 +1,234 @@
+Logstash Installation 
+----------------------
+1. Install JDK1.8
+sudo apt-get install openjdk-8*
+
+2. Follow the installation procedure - https://www.elastic.co/guide/en/logstash/current/installing-logstash.html#package-repositories
+
+3. start the logstash - sudo systemctl start logstash.service
+
+4. Check the logstash process,
+
+root@ip-44-58-66-84:/home/ubuntu# ps -ef | grep logstash
+logstash  9457     1  0 22:24 ?        00:00:00 /usr/bin/java -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75 -XX:+UseCMSInitiatingOccupancyOnly -XX:+DisableExplicitGC -Djava.awt.headless=true -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -Xmx1g -Xms256m -Xss2048k -Djffi.boot.library.path=/usr/share/logstash/vendor/jruby/lib/jni -Xbootclasspath/a:/usr/share/logstash/vendor/jruby/lib/jruby.jar -classpath : -Djruby.home=/usr/share/logstash/vendor/jruby -Djruby.lib=/usr/share/logstash/vendor/jruby/lib -Djruby.script=jruby -Djruby.shell=/bin/sh org.jruby.Main --1.9 /usr/share/logstash/lib/bootstrap/environment.rb logstash/runner.rb --path.settings /etc/logstash
+root      9500  1513  0 22:24 pts/0    00:00:00 grep --color=auto logstash
+
+
+Installing Elasticsearch
+-------------------------------
+https://www.elastic.co/guide/en/elasticsearch/reference/current/deb.html
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+sudo apt-get install apt-transport-https
+echo "deb https://artifacts.elastic.co/packages/5.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-5.x.list
+sudo apt-get update && sudo apt-get install elasticsearch
+ps -ef | grep elasticsearch
+ps -ef | grep elastic
+sudo /bin/systemctl daemon-reload
+sudo /bin/systemctl enable elasticsearch.service
+sudo systemctl start elasticsearch.service
+ps -ef | grep elasticsearch
+
+
+Install EC2 plugins for Elasticsearch
+-----------------------------------------
+elasticsearch: /etc/elasticsearch /usr/share/elasticsearch
+root@ip-44-58-66-84:/etc/elasticsearch# cd /usr/share/elasticsearch
+root@ip-44-58-66-84:/usr/share/elasticsearch# ls -ltr
+total 32
+-rw-r--r--  1 root root 9108 Dec  6 12:39 README.textile
+drwxr-xr-x  2 root root 4096 Dec  6 12:39 plugins
+-rw-r--r--  1 root root  150 Dec  6 12:39 NOTICE.txt
+drwxr-xr-x 12 root root 4096 Jan  5 22:48 modules
+drwxr-xr-x  2 root root 4096 Jan  5 22:48 lib
+drwxr-xr-x  2 root root 4096 Jan  5 22:48 bin
+root@ip-44-58-66-84:/usr/share/elasticsearch# cd bin
+root@ip-44-58-66-84:/usr/share/elasticsearch/bin# ls -ltr
+total 24
+-rwxr-xr-x 1 root root 2569 Dec  6 12:39 elasticsearch-translog
+-rwxr-xr-x 1 root root  223 Dec  6 12:39 elasticsearch-systemd-pre-exec
+-rwxr-xr-x 1 root root 2595 Dec  6 12:39 elasticsearch-plugin
+-rwxr-xr-x 1 root root  404 Dec  6 12:39 elasticsearch.in.sh
+-rwxr-xr-x 1 root root 7852 Dec  6 12:39 elasticsearch
+root@ip-44-58-66-84:/usr/share/elasticsearch/bin# sudo elasticsearch-plugin install discovery-ec2
+sudo: unable to resolve host ip-44-58-66-84
+sudo: elasticsearch-plugin: command not found
+root@ip-44-58-66-84:/usr/share/elasticsearch/bin# cd ..
+root@ip-44-58-66-84:/usr/share/elasticsearch# sudo bin/elasticsearch-plugin install discovery-ec2
+sudo: unable to resolve host ip-44-58-66-84
+-> Downloading discovery-ec2 from elastic
+[=================================================] 100%  
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@     WARNING: plugin requires additional permissions     @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+* java.lang.RuntimePermission accessDeclaredMembers
+* java.lang.RuntimePermission getClassLoader
+See http://docs.oracle.com/javase/8/docs/technotes/guides/security/permissions.html
+for descriptions of what these permissions allow and the associated risks.
+
+Continue with installation? [y/N]y
+-> Installed discovery-ec2
+root@ip-44-58-66-84:/usr/share/elasticsearch#
+
+
+
+
+Configuring for Elasticsearch-cluster in each each with the file elasticsearch.yaml
+===========================================================================================
+node
+node.name: "prod-4g-aercore-elasticsearch1"
+
+
+cluster.name: prod-ngb
+cloud.aws.access_key: <key>
+cloud.aws.secret_key: <skey>
+cloud.aws.region: us-west-2
+discovery.type: ec2
+discovery.ec2.tag.Name: "<instanceTag>"
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+
+
+INstalling filebeat plugin in logstash
+---------------------------------------
+root@ip-10-3-1-242:/usr/share/logstash# ./bin/logstash-plugin install logstash-input-beats
+Validating logstash-input-beats
+Installing logstash-input-beats
+Installation successful
+
+
+Install Filebeat
+======================
+ 1199  wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+ 1200  sudo apt-get install apt-transport-https
+ 1201  echo "deb https://artifacts.elastic.co/packages/5.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-5.x.list
+ 1202  sudo apt-get update && sudo apt-get install filebeat
+ 
+
+
+Filebeat config
+====================
+
+filebeat:
+  prospectors:
+   -
+      paths:
+        - "/mnt/logs/example/*.log"
+      document_type: apps.log
+
+output:
+  logstash:
+    # Array of hosts to connect to.
+     hosts: ["74.34.31.22:5044"]
+
+
+
+Start filebeat
+================
+start the filebeat at the client application machine
+
+LOGSTASH CONFIG
+===================
+
+input { file { path => "/tmp/logstash.txt" } } output { elasticsearch { host => "internal.example.com" protocol => "http" } }
+
+Installing X-pack
+================================
+
+root@ip-44-58-66-84:/etc# cd /usr/share/elasticsearch/
+root@ip-44-58-66-84:/usr/share/elasticsearch# ls -ltr
+total 220
+-rw-r--r--  1 root root   9549 Sep  7 03:12 README.textile
+-rw-r--r--  1 root root 194187 Sep  7 03:12 NOTICE.txt
+drwxr-xr-x 13 root root   4096 Sep 14 22:19 modules
+drwxr-xr-x  2 root root   4096 Sep 14 22:19 lib
+drwxr-xr-x  2 root root   4096 Sep 14 22:19 bin
+drwxr-xr-x  3 root root   4096 Sep 14 22:23 plugins
+root@ip-44-58-66-84:/usr/share/elasticsearch# cd bin/
+root@ip-44-58-66-84:/usr/share/elasticsearch/bin# ls -ltr
+total 28
+-rwxr-xr-x 1 root root 2569 Sep  7 03:12 elasticsearch-translog
+-rwxr-xr-x 1 root root  223 Sep  7 03:12 elasticsearch-systemd-pre-exec
+-rwxr-xr-x 1 root root 2595 Sep  7 03:12 elasticsearch-plugin
+-rwxr-xr-x 1 root root 2605 Sep  7 03:12 elasticsearch-keystore
+-rwxr-xr-x 1 root root  367 Sep  7 03:12 elasticsearch.in.sh
+-rwxr-xr-x 1 root root 8075 Sep  7 03:12 elasticsearch
+root@ip-44-58-66-84:/usr/share/elasticsearch/bin# cd ..
+root@ip-44-58-66-84:/usr/share/elasticsearch# bin/elasticsearch-plugin install x-pack
+-> Downloading x-pack from elastic
+[=================================================] 100%  
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@     WARNING: plugin requires additional permissions     @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+* java.io.FilePermission \\.\pipe\* read,write
+* java.lang.RuntimePermission accessClassInPackage.com.sun.activation.registries
+* java.lang.RuntimePermission getClassLoader
+* java.lang.RuntimePermission setContextClassLoader
+* java.lang.RuntimePermission setFactory
+* java.security.SecurityPermission createPolicy.JavaPolicy
+* java.security.SecurityPermission getPolicy
+* java.security.SecurityPermission putProviderProperty.BC
+* java.security.SecurityPermission setPolicy
+* java.util.PropertyPermission * read,write
+* java.util.PropertyPermission sun.nio.ch.bugLevel write
+* javax.net.ssl.SSLPermission setHostnameVerifier
+See http://docs.oracle.com/javase/8/docs/technotes/guides/security/permissions.html
+for descriptions of what these permissions allow and the associated risks.
+
+Continue with installation? [y/N]y
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@        WARNING: plugin forks a native controller        @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+This plugin launches a native controller that is not subject to the Java
+security manager nor to system call filters.
+
+Continue with installation? [y/N]y
+-> Installed x-pack
+root@ip-44-58-66-84:/usr/share/elasticsearch#
+
+
+Installing x-pack in kibana
+=====================================
+
+root@ip-44-58-66-84:/usr/share/elasticsearch# cd ../kibana/
+root@ip-44-58-66-84:/usr/share/kibana# ls -ltr
+total 844
+-rw-rw-r--   1 root   root      562 Sep  7 03:21 LICENSE.txt
+-rw-rw-r--   1 root   root     4899 Sep  7 03:21 README.txt
+drwxrwxr-x   2 kibana kibana   4096 Sep  7 03:21 plugins
+-rw-rw-r--   1 root   root      721 Sep  7 03:21 package.json
+-rw-rw-r--   1 root   root   796119 Sep  7 03:21 NOTICE.txt
+drwxrwxr-x   5 root   root     4096 Sep 14 22:21 ui_framework
+drwxrwxr-x 618 root   root    20480 Sep 14 22:21 node_modules
+drwxr-xr-x  13 root   root     4096 Sep 14 22:21 src
+drwxr-xr-x   2 root   root     4096 Sep 14 22:21 webpackShims
+drwxrwxr-x   3 kibana kibana   4096 Sep 14 22:21 optimize
+drwxrwxr-x   6 root   root     4096 Sep 14 22:21 node
+drwxr-xr-x   2 root   root     4096 Sep 14 22:21 bin
+root@ip-44-58-66-84:/usr/share/kibana# bin/kibana-plugin install x-pack
+Attempting to transfer from x-pack
+Attempting to transfer from https://artifacts.elastic.co/downloads/kibana-plugins/x-pack/x-pack-5.6.0.zip
+Transferring 119526372 bytes....................
+Transfer complete
+Retrieving metadata from plugin archive
+Extracting plugin archive
+Extraction complete
+Optimizing and caching browser bundles...
+
+
+----------------------------------------------------------------------------------------
+Machine Leaning notes - https://www.youtube.com/watch?v=IpGxLWOIZy4
+----------------------------------------------------------------------------------------
+1. Leaner regression - In statistics, linear regression is a linear approach for modeling the relationship between a scalar dependent variable y and one or more explanatory variables (or independent variables) denoted X. The case of one explanatory variable is called simple linear regression.
+2. Logistics regression - Logistic regression is a statistical method for analyzing a dataset in which there are one or more independent variables that determine an outcome. The outcome is measured with a dichotomous variable (in which there are only two possible outcomes).
+3. Gradient descent -  first-order iterative optimization algorithm for finding the mininy of a function
+4. Log loss function - Logarithmic Loss, or simply Log Loss, is a classification loss function often used as an evaluation metric in kaggle competitions. ... Log Loss quantifies the accuracy of a classifier by penalising false classifications.
+5. Neural Network - An Artificial Neural Network (ANN) is an information processing paradigm that is inspired by the way biological nervous systems, such as the brain, process information. The key element of this paradigm is the novel structure of the information processing system.
+6. Linear optimization - Linear programming (LP, also called linear optimization) is a method to achieve the best outcome (such as maxiny profit or lowest cost) in a mathematical model whose requirements are represented by linear relationships. Linear programming is a special case of mathematical programming (mathematical optimization).
+7. Support Vector Machine - A Support Vector Machine (SVM) is a discriminative classifier formally defined by a separating hyperplane. In other words, given labeled training data (supervised learning), the algorithm outputs an optimal hyperplane which categorizes new examples.
+8. k-means clustering - k-means clustering aims to partition n observations into k clusters in which each observation belongs to the cluster with the nearest mean, serving as a prototype of the cluster. This results in a partitioning of the data space into Voronoi cells.
+9. hierarchical clustering - In data mining and statistics, hierarchical clustering (also called hierarchical cluster analysis or HCA) is a method of cluster analysis which seeks to build a hierarchy of clusters.
+10. Naive Bayes classifier - In machine learning, naive Bayes classifiers are a family of simple probabilistic classifiers based on applying Bayes' theorem with strong (naive) independence assumptions between the features
+11. Decision tree - A decision tree is a decision support tool that uses a tree-like graph or model of decisions and their possible consequences, including chance event outcomes, resource costs, and utility. It is one way to display an algorithm.
+
+
+
