@@ -118,7 +118,7 @@ def filter_indices_to_close(open_indices_list):
 
 
 def main():
-    elastic_cluster_url = 'http://internal-prod-4g-aercore-elasticsearch-lb-1905502745.us-west-2.elb.amazonaws.com:9200/'
+    elastic_cluster_url = 'http://internal-prod-elasticsearch-lb-02745.us-west-2.elb.amazonaws.com:9200/'
     file_location = '/opt/devops/cron/indices.txt'  
 
     # Query the indices information from the elastic-search clusters
